@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Surveillance — Search Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #252b3b;
+    --border-bright: #2e3650;
+    --accent: #00e5a0;
+    --accent-dim: rgba(0,229,160,0.12);
+    --accent-glow: rgba(0,229,160,0.06);
+    --red: #ff4d6a;
+    --red-dim: rgba(255,77,106,0.12);
+    --text: #e8ecf4;
+    --text-muted: #6b7694;
+    --text-dim: #3d4560;
+    --yellow: #f5c518;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .brand-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(0,229,160,0.2);
+    padding: 3px 8px;
+    border-radius: 2px;
+    display: inline-block;
+    width: fit-content;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    margin-top: 8px;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+    margin-top: 6px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 32px;
+  }
+
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Input fields */
+  .field-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  input[type="text"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    width: 100%;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+
+  input[type="text"]::placeholder { color: var(--text-dim); }
+
+  /* Transaction cards */
+  #transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tx-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 28px 1fr 1fr 32px;
+    gap: 10px;
+    align-items: center;
+    transition: border-color 0.15s;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tx-card:hover { border-color: var(--border-bright); }
+
+  .tx-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .tx-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tx-field-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .tx-field-label.buy { color: var(--accent); }
+  .tx-field-label.sell { color: var(--red); }
+
+  .tx-field input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  .tx-field input:focus { border-color: var(--border-bright); }
+  .tx-field input.buy-input:focus { border-color: var(--accent); }
+  .tx-field input.sell-input:focus { border-color: var(--red); }
+  .tx-field input::placeholder { color: var(--text-dim); }
+
+  .btn-remove {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+  }
+
+  .btn-remove:hover { color: var(--red); border-color: var(--red-dim); background: var(--red-dim); }
+
+  /* Buttons */
+  .btn-add {
+    background: none;
+    border: 1px dashed var(--border-bright);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    padding: 10px 16px;
+    transition: all 0.15s;
+    width: 100%;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .btn-add:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  /* Preview panel */
+  #preview-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: none;
+  }
+
+  #preview-panel.visible { display: block; }
+
+  .preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .preview-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .preview-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  .search-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .search-list::-webkit-scrollbar { width: 4px; }
+  .search-list::-webkit-scrollbar-track { background: transparent; }
+  .search-list::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  .search-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 3px;
+    background: var(--surface2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: background 0.1s;
+  }
+
+  .search-item:hover { background: var(--border); }
+
+  .search-item .idx {
+    color: var(--text-dim);
+    font-size: 10px;
+    min-width: 20px;
+    text-align: right;
+  }
+
+  .search-item .query-text {
+    color: var(--text);
+    flex: 1;
+  }
+
+  .search-item .query-text span {
+    color: var(--yellow);
+  }
+
+  .type-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .type-pair { background: rgba(0,229,160,0.1); color: var(--accent); }
+  .type-company { background: rgba(245,197,24,0.1); color: var(--yellow); }
+
+  /* Actions */
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-preview {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 12px 20px;
+    transition: all 0.15s;
+  }
+
+  .btn-preview:hover { border-color: var(--text-muted); background: var(--border); }
+
+  .btn-export {
+    flex: 2;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px 20px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-export:hover { background: #00ffb3; box-shadow: 0 0 20px rgba(0,229,160,0.3); }
+  .btn-export:active { transform: scale(0.99); }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.25s ease;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* Error */
+  #error-msg {
+    background: var(--red-dim);
+    border: 1px solid rgba(255,77,106,0.3);
+    border-radius: 4px;
+    padding: 10px 14px;
+    color: var(--red);
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  #error-msg.visible { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="brand">
+      <span class="brand-tag">Market Surveillance</span>
+      <h1>Search Query Generator</h1>
+      <p class="subtitle">Automated Google search generation for investigation cases</p>
+    </div>
+    <div class="status-dot"></div>
+  </header>
+
+  <!-- Case info -->
+  <div class="section">
+    <div class="section-label">Case Information</div>
+    <div class="field-group">
+      <div class="field">
+        <label>CASE ID</label>
+        <input type="text" id="case-id" placeholder="e.g. CASE-2024-0147">
+      </div>
+      <div class="field">
+        <label>COMPANY / SECURITY</label>
+        <input type="text" id="company" placeholder="e.g. Nestlé SA">
+      </div>
+    </div>
+  </div>
+
+  <!-- Transactions -->
+  <div class="section">
+    <div class="section-label">Transactions</div>
+    <div id="transactions-list"></div>
+    <button class="btn-add" onclick="addTransaction()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      Add a transaction
+    </button>
+  </div>
+
+  <!-- Error -->
+  <div id="error-msg"></div>
+
+  <!-- Preview -->
+  <div id="preview-panel">
+    <div class="preview-header">
+      <span class="preview-title">Generated Searches</span>
+      <span class="preview-count" id="preview-count">0 searches</span>
+    </div>
+    <div class="search-list" id="search-list"></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-preview" onclick="previewSearches()">
+      Preview
+    </button>
+    <button class="btn-export" onclick="exportCSV()">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+        <path d="M7.5 1v9m0 0L4 6.5M7.5 10l3.5-3.5M1 13h13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Export CSV
+    </button>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let txCount = 0;
+
+  function addTransaction() {
+    txCount++;
+    const n = txCount;
+    const list = document.getElementById('transactions-list');
+    const div = document.createElement('div');
+    div.className = 'tx-card';
+    div.id = `tx-${n}`;
+    div.innerHTML = `
+      <div class="tx-num">${String(n).padStart(2,'0')}</div>
+      <div class="tx-field">
+        <div class="tx-field-label buy">BUY SIDE</div>
+        <input type="text" class="buy-input" placeholder="Buyer name" data-role="buy">
+      </div>
+      <div class="tx-field">
+        <div class="tx-field-label sell">SELL SIDE</div>
+        <input type="text" class="sell-input" placeholder="Seller name" data-role="sell">
+      </div>
+      <button class="btn-remove" onclick="removeTransaction(${n})" title="Remove">×</button>
+    `;
+    list.appendChild(div);
+    div.querySelector('.buy-input').focus();
+  }
+
+  function removeTransaction(n) {
+    const el = document.getElementById(`tx-${n}`);
+    if (el) {
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(10px)';
+      el.style.transition = 'all 0.15s ease';
+      setTimeout(() => el.remove(), 150);
+    }
+  }
+
+  function getFormData() {
+    const caseId  = document.getElementById('case-id').value.trim();
+    const company = document.getElementById('company').value.trim();
+    const cards   = document.querySelectorAll('.tx-card');
+
+    const transactions = [];
+    cards.forEach(card => {
+      const buy  = card.querySelector('[data-role="buy"]').value.trim();
+      const sell = card.querySelector('[data-role="sell"]').value.trim();
+      if (buy || sell) transactions.push({ buy, sell });
+    });
+
+    return { caseId, company, transactions };
+  }
+
+  function generateSearches({ caseId, company, transactions }) {
+    const searches = [];
+    const seen = new Set();
+
+    function add(termA, termB, type) {
+      if (!termA || !termB) return;
+      const key = [termA, termB].sort().join('|||');
+      if (seen.has(key)) return;
+      seen.add(key);
+      const query = `"${termA}" "${termB}"`;
+      searches.push({ caseId, company, termA, termB, type, query });
+    }
+
+    transactions.forEach(tx => {
+      // Paire buy/sell de cette transaction
+      add(tx.buy, tx.sell, 'buy/sell pair');
+      // Chaque côté vs la company
+      if (company) {
+        add(tx.buy, company, 'client vs company');
+        add(tx.sell, company, 'client vs company');
+      }
+    });
+
+    return searches;
+  }
+
+  function validate() {
+    const err = document.getElementById('error-msg');
+    const { company, transactions } = getFormData();
+
+    if (!company) {
+      err.textContent = 'Please enter the company / security name.';
+      err.classList.add('visible');
+      document.getElementById('company').focus();
+      return false;
+    }
+    if (transactions.length === 0) {
+      err.textContent = 'Please add at least one transaction.';
+      err.classList.add('visible');
+      return false;
+    }
+    const hasEmpty = transactions.some(t => !t.buy && !t.sell);
+    if (hasEmpty) {
+      err.textContent = 'One transaction is empty. Please fill it in or remove it.';
+      err.classList.add('visible');
+      return false;
+    }
+    err.classList.remove('visible');
+    return true;
+  }
+
+  function previewSearches() {
+    if (!validate()) return;
+
+    const data     = getFormData();
+    const searches = generateSearches(data);
+    const panel    = document.getElementById('preview-panel');
+    const list     = document.getElementById('search-list');
+    const count    = document.getElementById('preview-count');
+
+    count.textContent = `${searches.length} search${searches.length > 1 ? 'es' : ''}`;
+    list.innerHTML = '';
+
+    searches.forEach((s, i) => {
+      const item = document.createElement('div');
+      item.className = 'search-item';
+      const badgeClass = s.type === 'buy/sell pair' ? 'type-pair' : 'type-company';
+      const badgeLabel = s.type === 'buy/sell pair' ? 'pair' : 'vs company';
+      item.innerHTML = `
+        <span class="idx">${i + 1}</span>
+        <span class="query-text"><span>"${s.termA}"</span> <span>"${s.termB}"</span></span>
+        <span class="type-badge ${badgeClass}">${badgeLabel}</span>
+      `;
+      list.appendChild(item);
+    });
+
+    panel.classList.add('visible');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function exportCSV() {
+    if (!validate()) return;
+
+    const data     = getFormData();
+    const searches = generateSearches(data);
+    const now      = new Date();
+    const ts       = now.toISOString().replace('T', ' ').substring(0, 19);
+    const dateStr  = now.toISOString().substring(0, 10).replace(/-/g, '');
+
+    const headers = [
+      'case_id',
+      'company',
+      'term_a',
+      'term_b',
+      'search_type',
+      'google_query',
+      'google_search_url',
+      'generated_at'
+    ];
+
+    const rows = searches.map(s => {
+      const encoded = encodeURIComponent(s.query);
+      const url = `https://www.google.com/search?q=${encoded}`;
+      return [
+        s.caseId || '',
+        s.company,
+        s.termA,
+        s.termB,
+        s.type,
+        s.query,
+        url,
+        ts
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const caseLabel = (data.caseId || 'case').replace(/[^a-zA-Z0-9-_]/g, '_');
+    link.download = `surveillance_${caseLabel}_${dateStr}.csv`;
+    link.click();
+
+    showToast(`✓ ${searches.length} searches exported`);
+    previewSearches();
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // Init with 2 transactions
+  addTransaction();
+  addTransaction();
+</script>
+</body>
+</html>
